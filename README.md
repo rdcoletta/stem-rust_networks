@@ -54,6 +54,13 @@ I ran `scripts/counts2fpkm.R` for both wheat and brachy datasets.
 grep -v "^#" data/IWGSC_v1.1_HC_20170706.gff3 > data/IWGSC_v1.1_HC_20170706.no-header.gff3
 grep -v "^#" data/BdistachyonBd21_3_537_v1.2.gene_exons.gff3 > data/BdistachyonBd21_3_537_v1.2.gene_exons.no-header.gff3
 
+# then remove quotes around gene and sample names
+sed -i 's/"//g' data/wheat_counts_raw.txt
+sed -i 's/"//g' data/brachy_counts_raw.txt
+# remove htseq-specific lines (i.e. start with _)
+sed -i '/^_/d' data/wheat_counts_raw.txt
+sed -i '/^_/d' data/brachy_counts_raw.txt
+
 # for how to use script
 Rscript scripts/counts2fpkm.R --help
 
@@ -63,3 +70,17 @@ Rscript scripts/counts2fpkm.R data/wheat_counts_raw.txt data/IWGSC_v1.1_HC_20170
 # brachy dataset
 Rscript scripts/counts2fpkm.R data/brachy_counts_raw.txt data/BdistachyonBd21_3_537_v1.2.gene_exons.no-header.gff3 data/brachy_counts_fpkm.txt --cores=10
 ```
+
+As a quick QC, I wrote `scripts/pca_expr_data.R` to perform PCA on the expression datasets (raw counts and fpkm) for wheat and Brachy.
+
+```bash
+mkdir -p analysis/qc
+
+for geno in wheat brachy; do
+  for expr in raw fpkm; do
+    Rscript scripts/pca_expr_data.R data/${geno}_counts_${expr}.txt analysis/qc/pca_${geno}_${expr}.png
+  done
+done
+```
+
+> Grouping of samples according to PCA seems to agree pretty well.

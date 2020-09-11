@@ -77,9 +77,6 @@ counts <- fread(raw_counts_file, header = TRUE, data.table = FALSE)
 annotation <- fread(annotation_file, header = FALSE, data.table = FALSE)
 colnames(annotation) <- c("seqid", "source", "type", "start", "end", "score", "strand", "phase", "attributes")
 
-# remove extra htseq-related rows
-counts <- counts[grep("^_", counts[, 1], perl = TRUE, invert = TRUE), ]
-
 # note: total gene length should be exons + introns (not just exons), because we counted
 # any read landing within the start/stop as counting for that particular gene
 

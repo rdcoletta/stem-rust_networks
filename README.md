@@ -83,4 +83,42 @@ for geno in wheat brachy; do
 done
 ```
 
-> Grouping of samples according to PCA seems to agree pretty well.
+> Grouping of samples according to PCA seems to agree reasonably well.
+
+
+
+### Filter data by coefficient of variation
+
+Coexpression networks require variation of gene expression across samples. Thus, filtering genes by their coefficient of variation (CV) eliminates such uninformative genes, reduces the initial number of genes to build networks and speeds up clustering. To have an idea of what CV threshold to use, I plotted the distribution of genes CV among samples using `scripts/prepare_data_for_camoco.R`.
+
+```bash
+# plot CV distribution
+Rscript scripts/prepare_data_for_camoco.R data/brachy_counts_fpkm.txt analysis/qc/cv_distribution_brachy-fpkm.png --plot-cv
+Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt analysis/qc/cv_distribution_wheat-fpkm.png --plot-cv
+```
+
+Below is the number of genes that would be eliminated by different CV thresholds. Based on this table, I will only keep genes with CV >= 0.1 for both brachy and wheat.
+
+|               | Brachy               | Wheat                |
+| ------------- | -------------------- | -------------------- |
+| Not expressed | 8398 genes (21.5%)   | 28795 genes (26.69%) |
+| CV < 0.1      | 8518 genes (21.8%)   | 28797 genes (26.69%) |
+| CV < 0.2      | 12678 genes (32.45%) | 30307 genes (28.09%) |
+| CV < 0.3      | 18525 genes (47.42%) | 38032 genes (35.25%) |
+| CV < 0.4      | 22511 genes (57.62%) | 47331 genes (43.87%) |
+| CV < 0.5      | 25351 genes (64.89%) | 55537 genes (51.48%) |
+
+An additional formatting of the expression matrix is required for building networks with Camoco. `scripts/prepare_data_for_camoco.R` generates a `.csv` file without the first comma from the header, in order to the input dataset look like this:
+
+| Sample1 | Sample2 | Sample3 | Sample4 |    |
+|---------|---------|---------|---------|----|
+| gene1   | 10      | 20      | 30      | 40 |
+| gene2   | 10      | 20      | 30      | 40 |
+| gene3   | 10      | 20      | 30      | 40 |
+
+
+```bash
+# filter expression data by CV
+Rscript scripts/prepare_data_for_camoco.R data/brachy_counts_fpkm.txt data/brachy_counts_fpkm-cv0.1.csv --filter-cv=0.1
+Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt data/wheat_counts_fpkm-cv0.1.csv --filter-cv=0.1
+```

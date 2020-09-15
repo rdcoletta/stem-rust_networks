@@ -20,7 +20,7 @@ optional argument:
   --help                  show this helpful message
   --plot-cv               only plot distribution of genes CV (no filtering happens)
   --filter-cv=VALUE       filter out genes with CV < 0.1 (default)
-
+  --keep-samples=LIST     list of comma-separated sample IDs to keep
 
 "
   )
@@ -31,7 +31,7 @@ getArgValue <- function(arg) {
   # get value from command-line arguments
   arg <- unlist(strsplit(arg, "="))
   if (length(arg) == 1) return(TRUE)
-  if (length(arg) > 1) return(as.numeric(arg[2]))
+  if (length(arg) > 1) return(arg[2])
 
 }
 
@@ -41,6 +41,7 @@ getArgValue <- function(arg) {
 # set default
 filter_cv <- NULL
 plot_cv <- FALSE
+keep_samples <- NULL
 
 # get arguments
 args <- commandArgs(trailingOnly = TRUE)
@@ -53,14 +54,19 @@ if (length(args) < 2) stop(usage(), "missing positional argument(s)")
 if (length(args) > 2) {
 
   opt_args <- args[-1:-2]
-  opt_args_allowed <- c("--filter-cv", "--plot-cv")
+  opt_args_allowed <- c("--filter-cv", "--plot-cv", "--keep-samples")
   opt_args_requested <- as.character(sapply(opt_args, function(x) unlist(strsplit(x, split = "="))[1]))
   if (any(!opt_args_requested %in% opt_args_allowed)) stop(usage(), "wrong optional argument(s)")
 
   # change default based on the argument provided
-  if (any(grepl("--filter-cv", opt_args_requested))) filter_cv <- getArgValue(opt_args[grep("--filter-cv", opt_args)])
-  if (any(grepl("--plot-cv", opt_args_requested))) plot_cv <- getArgValue(opt_args[grep("--plot-cv", opt_args)])
-
+  for (argument in opt_args_allowed) {
+    if (any(grepl(argument, opt_args_requested))) {
+      arg_name <- gsub("-", "_", gsub("--", "", argument))
+      arg_value <- getArgValue(opt_args[grep(argument, opt_args)])
+      assign(arg_name, arg_value)
+    } 
+  }
+  
 }
 
 
@@ -72,6 +78,7 @@ output_name <- args[2]
 # expr_file <- "data/brachy_counts_fpkm.txt"
 # output_name <- "data/brachy_counts_fpkm.csv"
 # output_name <- "data/brachy_counts_fpkm.cv0-1.csv"
+# keep_samples <- "Bd21_D2_mock_R1,Bd21_D2_mock_R2,Bd21_D2_mock_R3"
 
 # load data
 expr <- fread(expr_file, header = TRUE, data.table = FALSE)
@@ -110,7 +117,7 @@ if (plot_cv) {
 } else if (!is.null(filter_cv)) {
 
   # filter data by cv
-  genes_above_threshold <- which(genes_cv >= filter_cv)
+  genes_above_threshold <- which(genes_cv >= as.numeric(filter_cv))
 
   n_genes_removed <- NROW(expr) - length(genes_above_threshold)
   cat("Removed ", n_genes_removed, " genes (", round((n_genes_removed / NROW(expr) * 100), digits = 2),
@@ -118,6 +125,14 @@ if (plot_cv) {
 
   expr <- expr[genes_above_threshold, ]
 
+}
+
+# filter dataset based on samples to keep, if provided
+if (!is.null(keep_samples)) {
+  
+  keep_samples <- unlist(strsplit(keep_samples, ","))
+  expr <- expr[, which(colnames(expr) %in% keep_samples)]
+  
 }
 
 # write output

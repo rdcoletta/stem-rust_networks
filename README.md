@@ -87,7 +87,7 @@ done
 
 
 
-### Filter data by coefficient of variation
+### Filter data by CV and samples for each network
 
 Coexpression networks require variation of gene expression across samples. Thus, filtering genes by their coefficient of variation (CV) eliminates such uninformative genes, reduces the initial number of genes to build networks and speeds up clustering. To have an idea of what CV threshold to use, I plotted the distribution of genes CV among samples using `scripts/prepare_data_for_camoco.R`.
 
@@ -116,9 +116,15 @@ An additional formatting of the expression matrix is required for building netwo
 | gene2   | 10      | 20      | 30      | 40 |
 | gene3   | 10      | 20      | 30      | 40 |
 
+I also to filter the whole dataset to have the samples I want for each network. There will be one network for each genotype (wheat susceptible, wheat resistant, brachy) using all reps for 2, 4 and 6 days after inoculating the plants with stem rust, and all reps for the 2dpi samples that were mock inoculated.
 
 ```bash
-# filter expression data by CV
-Rscript scripts/prepare_data_for_camoco.R data/brachy_counts_fpkm.txt data/brachy_counts_fpkm-cv0.1.csv --filter-cv=0.1
-Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt data/wheat_counts_fpkm-cv0.1.csv --filter-cv=0.1
+# brachy dataset
+Rscript scripts/prepare_data_for_camoco.R data/brachy_counts_fpkm.txt data/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv --filter-cv=0.1 --keep-samples=Bd21_D2_mock_R1,Bd21_D2_mock_R2,Bd21_D2_mock_R3,Bd21_D2_treated_R1,Bd21_D2_treated_R2,Bd21_D2_treated_R3,Bd21_D4_treated_R1,Bd21_D4_treated_R2,Bd21_D4_treated_R3,Bd21_D6_treated_R1,Bd21_D6_treated_R2,Bd21_D6_treated_R3
+
+# wheat resistant dataset
+Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt data/expr_data_fpkm_wheat_R.cv_0.1.inf_2-4-6.mock_2.csv --filter-cv=0.1 --keep-samples=Sr9b_D2_mock_R1,Sr9b_D2_mock_R2,Sr9b_D2_mock_R3,Sr9b_D2_treated_R1,Sr9b_D2_treated_R2,Sr9b_D2_treated_R3,Sr9b_D4_treated_R1,Sr9b_D4_treated_R2,Sr9b_D4_treated_R3,Sr9b_D6_treated_R1,Sr9b_D6_treated_R2,Sr9b_D6_treated_R3
+
+# wheat susceptible dataset
+Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt data/expr_data_fpkm_wheat_S.cv_0.1.inf_2-4-6.mock_2.csv --filter-cv=0.1 --keep-samples=W2691_D2_mock_R1,W2691_D2_mock_R2,W2691_D2_mock_R3,W2691_D2_treated_R1,W2691_D2_treated_R2,W2691_D2_treated_R3,W2691_D4_treated_R1,W2691_D4_treated_R2,W2691_D4_treated_R3,W2691_D6_treated_R1,W2691_D6_treated_R2,W2691_D6_treated_R3
 ```

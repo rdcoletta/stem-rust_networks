@@ -64,9 +64,9 @@ if (length(args) > 2) {
       arg_name <- gsub("-", "_", gsub("--", "", argument))
       arg_value <- getArgValue(opt_args[grep(argument, opt_args)])
       assign(arg_name, arg_value)
-    } 
+    }
   }
-  
+
 }
 
 
@@ -87,6 +87,14 @@ expr <- fread(expr_file, header = TRUE, data.table = FALSE)
 rownames(expr) <- expr[, 1]
 expr <- expr[, -1]
 
+# filter dataset based on samples to keep, if provided
+if (!is.null(keep_samples)) {
+
+  keep_samples <- unlist(strsplit(keep_samples, ","))
+  expr <- expr[, which(colnames(expr) %in% keep_samples)]
+
+}
+
 # calculate cv
 genes_cv <- apply(expr,  MARGIN = 1, function(gene) sd(gene) / mean(gene))
 
@@ -95,14 +103,14 @@ if (plot_cv) {
 
   # transform NA into zero so those genes also appear in the plot
   genes_cv[which(is.na(genes_cv))] <- 0
-  
+
   cat(sum(genes_cv == 0), " genes (", round((sum(genes_cv == 0) / length(genes_cv)) * 100, digits = 2),
       "%) not expressed in any sample\n", sep = "")
   for (threshold in seq(0.1, 1.0, 0.1)) {
     cat(sum(genes_cv < threshold), " genes (", round((sum(genes_cv < threshold) / length(genes_cv)) * 100, digits = 2),
         "%) with CV < ", threshold, "\n", sep = "")
   }
-  
+
   # plot distribution
   plot <- ggplot(data.frame(cv = genes_cv), aes(x = cv)) +
     geom_histogram(binwidth = 0.1) +
@@ -125,14 +133,6 @@ if (plot_cv) {
 
   expr <- expr[genes_above_threshold, ]
 
-}
-
-# filter dataset based on samples to keep, if provided
-if (!is.null(keep_samples)) {
-  
-  keep_samples <- unlist(strsplit(keep_samples, ","))
-  expr <- expr[, which(colnames(expr) %in% keep_samples)]
-  
 }
 
 # write output

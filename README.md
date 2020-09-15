@@ -128,3 +128,92 @@ Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt data/expr_d
 # wheat susceptible dataset
 Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt data/expr_data_fpkm_wheat_S.cv_0.1.inf_2-4-6.mock_2.csv --filter-cv=0.1 --keep-samples=W2691_D2_mock_R1,W2691_D2_mock_R2,W2691_D2_mock_R3,W2691_D2_treated_R1,W2691_D2_treated_R2,W2691_D2_treated_R3,W2691_D4_treated_R1,W2691_D4_treated_R2,W2691_D4_treated_R3,W2691_D6_treated_R1,W2691_D6_treated_R2,W2691_D6_treated_R3
 ```
+
+
+
+## Installing Camoco
+
+Camoco was already installed in a **virtual environment** using the software [miniconda](https://conda.io/miniconda.html).
+
+```bash
+cd ~/software/
+
+# get miniconda bash installer
+wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+# install miniconda
+bash Miniconda3-latest-Linux-x86_64.sh -p ~/software/miniconda
+# check if conda needs uptdates
+conda update -n base conda
+# create virtual environment for camoco
+conda create -n camoco python=3.6
+# check installed environments
+conda info --envs
+
+# update pip, wheel and setuptools
+pip install --upgrade pip
+pip install --upgrade wheel
+pip install --upgrade setuptools
+
+# activate environment and install Camoco on that environment
+source activate camoco
+# notice that (camoco) now appears before "della028@ln0005 [~/software] %"
+pip install numpy
+pip install camoco
+# test if package was installed correctly
+camoco -h
+
+# deactivate environment when done working
+source deactivate
+```
+
+
+
+## Building networks
+
+### Load reference annotation and gene ontology
+
+Before building any network, I need to load Brachy and wheat reference genome annotations into Camoco's database. Once a reference genome is loaded, you don't need to load it again: it will stay in Camoco's database to be used as many time as you want.
+
+
+```bash
+# activate camoco virtual environment
+source activate camoco
+
+# create a reference genome dataset for camoco -- see 'camoco build-refgen -h' for help
+camoco build-refgen data/BdistachyonBd21_3_537_v1.2.gene_exons.gff3 BrachyRef Bd21_3_537_v1.2 phytozomev13 Brachypodium_distachyon
+camoco build-refgen data/IWGSC_v1.1_HC_20170706.gff3 WheatRef TraesChineseSpring_v1.1_201706 IWGSC Triticum_aestivum
+# check that loading was successfull
+camoco ls
+
+# deactivate virtual environment
+source deactivate
+```
+
+Camoco performs Gene Ontology (GO) enrichment analysis to quality control the networks created. In order to do that, I need to create a GO object in Camoco, which requires a `go.obo` file containing all core ontology terms (<http://geneontology.org/docs/download-ontology/>) and a two-column species-specific file relating genes (first column) and their respective GO terms (second column).
+
+```bash
+# activate camoco virtual environment
+source activate camoco
+
+# get go.obo file
+wget -P data/ http://purl.obolibrary.org/obo/go.obo
+
+# remove header from species go files
+sed -i 1d data/brachy_full_gos_long.txt
+sed -i 1d data/wheat_full_gos_long.txt
+
+# need to add '.v1.2' at the end of brachy annotation gene IDs to match with reference gene IDs
+sed -i 's/\t/.v1.2\t/g' data/brachy_full_gos_long.txt
+
+# create a go annotation reference for camoco  -- see 'camoco build-go -h' for help
+camoco build-go data/brachy_full_gos_long.txt data/go.obo BrachyGO brachy_go_annotation BrachyRef
+camoco build-go data/wheat_full_gos_long.txt data/go.obo WheatGO wheat_go_annotation WheatRef
+# check that loading was successfull
+camoco ls
+
+# deactivate virtual environment
+source deactivate
+```
+
+> Done: Ontology:BrachyGO - desc: brachy_go_annotation - contains 3589 terms for Reference Genome: Brachypodium_distachyon - phytozomev13 - BrachyRef
+> Done: Ontology:WheatGO - desc: wheat_go_annotation - contains 12572 terms for Reference Genome: Triticum_aestivum - IWGSC - WheatRef

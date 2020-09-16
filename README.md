@@ -141,6 +141,30 @@ Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt data/expr_d
 
 
 
+### Adjust format of Brachy gene IDs
+
+After some preliminary tests, I found out that the gene IDs from Brachy genome annotation is not compatible with Camoco (it couldn't match the gene IDs of the reference annotation with the IDs of the expression data or Gene Ontology), very likely due to the presence of non-alphabetic characters such as `-` and `.`. I realized that eliminating these characters from reference annotation file, Gene Ontology file, and gene expression data solved the problem. For example, gene ID `BdiBd21-3.1G0000100.v1.2` became `BdiBd1G0000100`.
+
+```bash
+# reference genome annotation
+grep -P "^#" data/BdistachyonBd21_3_537_v1.2.gene_exons.gff3 > data/BdistachyonBd21_3_537_v1.2.gene_exons.corrected-IDs.gff3
+awk 'BEGIN{FS=OFS="\t"} {gsub(/\.v1\.2/, "", $9)} 1' data/BdistachyonBd21_3_537_v1.2.gene_exons.no-header.gff3 | awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $9)} 1' >> data/BdistachyonBd21_3_537_v1.2.gene_exons.corrected-IDs.gff3
+
+# awk commands:
+#   BEGIN{} this block of code will be executed before processing any input line
+#   FS=OFS="\t" set input and output field separator as tab
+#   gsub(/\.v1\.2/, "", $9 for each input line, replace all the '.v1.2' in 9th field with nothing
+#   1 is an awk idiom to print contents of $0 (which contains the input record)
+
+# go file
+sed 1d data/brachy_full_gos_long.txt | awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $1)} 1' > data/brachy_full_gos_long.corrected-IDs.txt
+
+# expression data
+head -n 1 data/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv > data/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.corrected-IDs.csv
+sed 1d data/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv | awk 'BEGIN{FS=OFS="\t"} {gsub(/\.v1\.2/, "", $1)} 1' | awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $1)} 1' >> data/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.corrected-IDs.csv
+```
+
+
 ## Install Camoco
 
 Camoco was already installed in a **virtual environment** using the software [miniconda](https://conda.io/miniconda.html).
@@ -188,7 +212,7 @@ Before building any network, I need to load Brachy and wheat reference genome an
 source activate camoco
 
 # create a reference genome dataset for camoco -- see 'camoco build-refgen -h' for help
-camoco build-refgen data/BdistachyonBd21_3_537_v1.2.gene_exons.gff3 BrachyRef Bd21_3_537_v1.2 phytozomev13 Brachypodium_distachyon
+camoco build-refgen data/BdistachyonBd21_3_537_v1.2.gene_exons.corrected-IDs.gff3 BrachyRef Bd21_3_537_v1.2 phytozomev13 Brachypodium_distachyon
 camoco build-refgen data/IWGSC_v1.1_HC_20170706.gff3 WheatRef TraesChineseSpring_v1.1_201706 IWGSC Triticum_aestivum
 # check that loading was successfull
 camoco ls
@@ -206,15 +230,11 @@ source activate camoco
 # get go.obo file
 wget -P data/ http://purl.obolibrary.org/obo/go.obo
 
-# remove header from species go files
-sed -i 1d data/brachy_full_gos_long.txt
+# remove header from wheat go files
 sed -i 1d data/wheat_full_gos_long.txt
 
-# need to add '.v1.2' at the end of brachy annotation gene IDs to match with reference gene IDs
-sed -i 's/\t/.v1.2\t/g' data/brachy_full_gos_long.txt
-
 # create a go annotation reference for camoco  -- see 'camoco build-go -h' for help
-camoco build-go data/brachy_full_gos_long.txt data/go.obo BrachyGO brachy_go_annotation BrachyRef
+camoco build-go data/brachy_full_gos_long.corrected-IDs.txt data/go.obo BrachyGO brachy_go_annotation BrachyRef
 camoco build-go data/wheat_full_gos_long.txt data/go.obo WheatGO wheat_go_annotation WheatRef
 # check that loading was successfull
 camoco ls

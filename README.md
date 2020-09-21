@@ -348,7 +348,7 @@ source deactivate
 
 
 
-## Identify clusters with susceptibility genes' orthologs
+## Susceptibility genes' orthologs
 
 One of the key points of Eva's paper is to see how Brachy and wheat orthologs of known susceptibility genes from Arabidopsis or Barley behave in the networks. One to check that is by performing GO enrichment analysis on clusters that have such genes. But, before doing that, I need to prepare a matrix with the orthologous relationship. Current Table S2 from Eva's manuscript have this information in a excel spreadsheet, so I transformed that into a `.txt` version, corrected the gene IDs to match those on Camoco database, and then updated the matrix to include the cluster information with `scripts/S_genes_clusters.R`.
 
@@ -375,13 +375,125 @@ Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_W2691_1
                                    analysis/clusters/s_gene_orthologs_clusters.SR_W2691_1.txt
 ```
 
-I also wrote `scripts/coexpression_scores.py` and `scripts/coexpression_scores.sh` to get all edges (i.e. z-scores; the Pearson correlation coefficients after being Fisher transformed and standard normalized) for each cluster that has a susceptibility gene ortholog, which can be useful to visualize interactions among genes in a cluster. Importantly, the ouput includes z-scores among **all** genes of the cluster, including those with a z-score lower than 2.5, the threshold used to declare the correlation between genes as significant. I did that in case I want to modify the threshold for visualization.
+I also wrote `scripts/coexpression_scores.py` and `scripts/coexpression_scores.sh` to get all edges (i.e. z-scores; the Pearson correlation coefficients after being Fisher transformed and standard normalized) for each cluster that has a susceptibility gene ortholog, which can be useful to visualize interactions among genes in a cluster. The script will output this information in three formats:
+
+1. `.txt` file with z-scores among **all** genes of the cluster, including those with a z-score lower than 2.5, the threshold used to declare the correlation between genes as significant
+2. `.gml` (GraphML) file only with significant correlations but without weights (i.e. z-score) for each edge
+3. `.json` file only with significant correlations and and their respective z-scores.
 
 ```bash
 # get coexpression scores from clusters with orthologs
 mkdir -p analysis/clusters/orthologs
 
 qsub -v NAME=SR_brachy_1 scripts/coexpression_scores.sh
+sleep 60
 qsub -v NAME=SR_Sr9b_1 scripts/coexpression_scores.sh
+sleep 60
 qsub -v NAME=SR_W2691_1 scripts/coexpression_scores.sh
+```
+
+
+
+## GO enrichment analysis
+
+Meesh had previously written `scripts/ClusterEnrichment.py` to perform GO enrichement analysis for each cluster of a Camoco network. I modified it a little bit to also give the option for the user to provide specific clusters, instead of doing it for all of them (which can take a long time to run). Thus, I performed GO enrichment analysis using the full GO dataset (but only with clusters containing susceptibility genes' orthologs), generic GO slim dataset (with all clusters) and plant GO dataset (with all clusters).
+
+```bash
+mkdir -p analysis/go_enrichment
+
+# get ortholog clusters for each genotype
+# note that 'qsub' doesn't allow me to add a list of comma-separated clusters
+# so I'm separating them by - and will transform back to comma in the bash script
+brachy_clusters=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.SR_brachy_1.txt | cut -f 6 | sort -n | uniq | tr "\n" "-" | sed '$ s/.$//')
+wheatR_clusters=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.SR_Sr9b_1.txt | cut -f 6 | sort -n | uniq | tr "\n" "-" | sed '$ s/.$//')
+wheatS_clusters=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.SR_W2691_1.txt | cut -f 6 | sort -n | uniq | tr "\n" "-" | sed '$ s/.$//')
+
+# cluster enrichment full GO terms for ortholog clusters
+qsub -v NAME=SR_brachy_1,GO=BrachyGO,CLUSTERS="$brachy_clusters",OUT=analysis/go_enrichment/go_full.SR_brachy_1.ortho_clusters.txt scripts/cluster_enrichment.sh
+qsub -v NAME=SR_Sr9b_1,GO=WheatGO,CLUSTERS="$wheatR_clusters",OUT=analysis/go_enrichment/go_full.SR_Sr9b_1.ortho_clusters.txt scripts/cluster_enrichment.sh
+qsub -v NAME=SR_W2691_1,GO=WheatGO,CLUSTERS="$wheatS_clusters",OUT=analysis/go_enrichment/go_full.SR_W2691_1.ortho_clusters.txt scripts/cluster_enrichment.sh
+
+# cluster enrichment GO slim for all clusters
+qsub -v NAME=SR_brachy_1,GO=BrachyGOslim,OUT=analysis/go_enrichment/go_slim.SR_brachy_1.all_clusters.txt scripts/cluster_enrichment.sh
+qsub -v NAME=SR_Sr9b_1,GO=WheatGOslim,OUT=analysis/go_enrichment/go_slim.SR_Sr9b_1.all_clusters.txt scripts/cluster_enrichment.sh
+qsub -v NAME=SR_W2691_1,GO=WheatGOslim,OUT=analysis/go_enrichment/go_slim.SR_W2691_1.all_clusters.txt scripts/cluster_enrichment.sh
+
+# cluster enrichment GO plants for all clusters
+qsub -v NAME=SR_brachy_1,GO=BrachyGOplant,OUT=analysis/go_enrichment/go_plant.SR_brachy_1.all_clusters.txt scripts/cluster_enrichment.sh
+qsub -v NAME=SR_Sr9b_1,GO=WheatGOplant,OUT=analysis/go_enrichment/go_plant.SR_Sr9b_1.all_clusters.txt scripts/cluster_enrichment.sh
+qsub -v NAME=SR_W2691_1,GO=WheatGOplant,OUT=analysis/go_enrichment/go_plant.SR_W2691_1.all_clusters.txt scripts/cluster_enrichment.sh
+```
+
+After the above jobs were completed, I checked the GO enrichment results to see if any of the enriched GO terms were actually one of the orthologs of the susceptibility genes. Once such genes were identified, I ran `scripts/GOenrich_per_S_gene.R` to create a matrix with susceptibility gene information and their respective enriched GO term information.
+
+```bash
+mkdir -p analysis/go_enrichment/{full,slim,plant}
+
+# extract GO enrichment information for each ortholog
+dir="analysis/go_enrichment"
+for network in SR_brachy_1 SR_Sr9b_1 SR_W2691_1; do
+  for go in full slim plant; do
+
+    # get genes to search
+    genes=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.${network}.txt | cut -f 5 | sort | uniq | tr "\n" " ")
+
+    for gene in ${genes}; do
+
+      # adjust type of clusters in filename according to go type
+      [[ ${go} == "full" ]] && clusters="ortho" || clusters="all"
+
+      # set input and output name
+      input="${dir}/go_${go}.${network}.${clusters}_clusters.txt"
+      output="${dir}/${go}/go_${go}.${network}.${gene}.txt"
+
+      # get header and keep only enriched GO terms that has this gene
+      head -n 1 ${input} > ${output}
+      grep ${gene} ${input} >> ${output}
+
+      # if file has no GO terms (i.e. contains only header), exclude file
+      [[ $(wc -l < ${output}) -gt 1 ]] || rm ${output}
+
+    done
+  done
+done
+
+# now keep only genes in the orthologs matrix that have GO enrichment
+for network in SR_brachy_1 SR_Sr9b_1 SR_W2691_1; do
+  echo ${network}
+  for go in full slim plant; do
+    Rscript scripts/GOenrich_per_S_gene.R analysis/clusters/s_gene_orthologs_clusters.${network}.txt \
+                                          analysis/go_enrichment/${go} \
+                                          ${network} \
+                                          analysis/go_enrichment/GOenrich_${go}_S_genes.${network}.txt
+  done
+done
+
+# for better visualization, I will merge the files from each GO enrichment type
+# into one file but exclude the GO description column
+for go in full slim plant; do
+  cut --complement -f 6 analysis/go_enrichment/GOenrich_${go}_S_genes.SR_brachy_1.txt > analysis/go_enrichment/GOenrich_${go}_S_genes.txt
+  cut --complement -f 6 analysis/go_enrichment/GOenrich_${go}_S_genes.SR_Sr9b_1.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_genes.txt
+  cut --complement -f 6 analysis/go_enrichment/GOenrich_${go}_S_genes.SR_W2691_1.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_genes.txt
+done
+```
+
+Similarly, I also ran `scripts/GOenrich_per_S_cluster.R` to get all GO terms enriched in a cluster where an ortholog was. For example, if cluster 0 had an otrhologo, all enriched GO terms in that cluster was extracted.
+
+```bash
+for network in SR_brachy_1 SR_Sr9b_1 SR_W2691_1; do
+  echo ${network}
+  for go in slim plant; do
+    Rscript scripts/GOenrich_per_S_cluster.R analysis/clusters/s_gene_orthologs_clusters.${network}.txt \
+                                             analysis/go_enrichment/go_${go}.${network}.all_clusters.txt \
+                                             ${network} \
+                                             analysis/go_enrichment/GOenrich_${go}_S_clusters.${network}.txt
+  done
+done
+
+# put all networks in one file and remove description column for better visualization
+for go in slim plant; do
+  cut --complement -f 5 analysis/go_enrichment/GOenrich_${go}_S_clusters.SR_brachy_1.txt > analysis/go_enrichment/GOenrich_${go}_S_clusters.txt
+  cut --complement -f 5 analysis/go_enrichment/GOenrich_${go}_S_clusters.SR_Sr9b_1.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_clusters.txt
+  cut --complement -f 5 analysis/go_enrichment/GOenrich_${go}_S_clusters.SR_W2691_1.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_clusters.txt
+done
 ```

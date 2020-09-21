@@ -203,6 +203,7 @@ sed 1d data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv | awk '
 ```
 
 
+
 ## Install Camoco
 
 Camoco was already installed in a **virtual environment** using the software [miniconda](https://conda.io/miniconda.html).
@@ -299,8 +300,6 @@ source deactivate
 
 
 
-
-
 ## Build networks
 
 Originally, Meesh had generated three networks, one for each genotype, and included infected samples 2,4 and 6 dpi and mock samples 2dpi only. To build the networks with `scripts/build_network.sh`, I need to specify five parameters: the Camoco filters to be applied to expression dataset (`OPT`), the expression data file (`IN`), a name for the network (`NAME`), a description of the network (`DESC`) and the reference genome to be used (`REF`). An additional parameter (`HEALTH`) is a folder to save summary statistics of the network.
@@ -345,4 +344,44 @@ for network in SR_brachy_1 SR_Sr9b_1 SR_W2691_1; do
 done
 
 source deactivate
+```
+
+
+
+## Identify clusters with susceptibility genes' orthologs
+
+One of the key points of Eva's paper is to see how Brachy and wheat orthologs of known susceptibility genes from Arabidopsis or Barley behave in the networks. One to check that is by performing GO enrichment analysis on clusters that have such genes. But, before doing that, I need to prepare a matrix with the orthologous relationship. Current Table S2 from Eva's manuscript have this information in a excel spreadsheet, so I transformed that into a `.txt` version, corrected the gene IDs to match those on Camoco database, and then updated the matrix to include the cluster information with `scripts/S_genes_clusters.R`.
+
+```bash
+mkdir -p data/orthologs
+
+# format 'BdiBd21-3.' to 'BdiBd' and remove '.1', '.2', etc from gene ids
+awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $6)} 1' data/orthologs/s_gene_orthologs.txt | awk 'BEGIN{FS=OFS="\t"} function GSUB(F) {gsub(/\.[0-9]+/, "", $F)} {GSUB(5);GSUB(6)} 1' > data/orthologs/s_gene_orthologs.corrected-IDs.txt
+
+# check the number of cluster for each ortholog gene
+Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_brachy_1.csv \
+                                   data/orthologs/s_gene_orthologs.corrected-IDs.txt \
+                                   brachy \
+                                   analysis/clusters/s_gene_orthologs_clusters.SR_brachy_1.txt
+
+Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_Sr9b_1.csv \
+                                   data/orthologs/s_gene_orthologs.corrected-IDs.txt \
+                                   wheat \
+                                   analysis/clusters/s_gene_orthologs_clusters.SR_Sr9b_1.txt
+
+Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_W2691_1.csv \
+                                   data/orthologs/s_gene_orthologs.corrected-IDs.txt \
+                                   wheat \
+                                   analysis/clusters/s_gene_orthologs_clusters.SR_W2691_1.txt
+```
+
+I also wrote `scripts/coexpression_scores.py` and `scripts/coexpression_scores.sh` to get all edges (i.e. z-scores; the Pearson correlation coefficients after being Fisher transformed and standard normalized) for each cluster that has a susceptibility gene ortholog, which can be useful to visualize interactions among genes in a cluster. Importantly, the ouput includes z-scores among **all** genes of the cluster, including those with a z-score lower than 2.5, the threshold used to declare the correlation between genes as significant. I did that in case I want to modify the threshold for visualization.
+
+```bash
+# get coexpression scores from clusters with orthologs
+mkdir -p analysis/clusters/orthologs
+
+qsub -v NAME=SR_brachy_1 scripts/coexpression_scores.sh
+qsub -v NAME=SR_Sr9b_1 scripts/coexpression_scores.sh
+qsub -v NAME=SR_W2691_1 scripts/coexpression_scores.sh
 ```

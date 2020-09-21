@@ -26,13 +26,22 @@ All data, scripts, and output of analyses are located on the folder `/home/hirsc
 cd ~/projects/
 
 mkdir -p stem-rust_networks/{analysis,data,scripts}
+mkdir -p stem-rust_networks/data/{annotation,expression,go}
+
+# also create a folder to keep MSI output
+mkdir -p analysis/msi_dump
 ```
 
-The lead author of the paper, Eva Henningsen, shared with me all data necessary for building the networks and they were stored at `data` folder.
+The lead author of the paper, Eva Henningsen, shared with me all data necessary for building the networks:
 
+`data/annotation`:
 * Wheat annotation file (`IWGSC_v1.1_HC_20170706.gff3`)
 * Brachypodium annotation file (`BdistachyonBd21_3_537_v1.2.gene_exons.gff3`)
+
+`data/expression`:
 * Normalized and raw gene expression matrices for wheat and Brachy (`EH_brachy_counts_normalized.txt`, `EH_wheat_counts_normalized.txt`, `wheat_counts_raw.txt`, `brachy_counts_raw.txt`)
+
+`data/go`:
 * GO terms for wheat and Brachy (`wheat_full_gos_long.txt`, `brachy_full_gos_long.txt`)
 
 
@@ -51,34 +60,41 @@ I ran `scripts/counts2fpkm.R` for both wheat and brachy datasets.
 
 ```bash
 # first need to remove header from annotation
-grep -v "^#" data/IWGSC_v1.1_HC_20170706.gff3 > data/IWGSC_v1.1_HC_20170706.no-header.gff3
-grep -v "^#" data/BdistachyonBd21_3_537_v1.2.gene_exons.gff3 > data/BdistachyonBd21_3_537_v1.2.gene_exons.no-header.gff3
+grep -v "^#" data/annotation/IWGSC_v1.1_HC_20170706.gff3 > data/annotation/IWGSC_v1.1_HC_20170706.no-header.gff3
+grep -v "^#" data/annotation/BdistachyonBd21_3_537_v1.2.gene_exons.gff3 > data/annotation/BdistachyonBd21_3_537_v1.2.gene_exons.no-header.gff3
 
 # then remove quotes around gene and sample names
-sed -i 's/"//g' data/wheat_counts_raw.txt
-sed -i 's/"//g' data/brachy_counts_raw.txt
+sed -i 's/"//g' data/expression/wheat_counts_raw.txt
+sed -i 's/"//g' data/expression/brachy_counts_raw.txt
 # remove htseq-specific lines (i.e. start with _)
-sed -i '/^_/d' data/wheat_counts_raw.txt
-sed -i '/^_/d' data/brachy_counts_raw.txt
+sed -i '/^_/d' data/expression/wheat_counts_raw.txt
+sed -i '/^_/d' data/expression/brachy_counts_raw.txt
 
 # for how to use script
 Rscript scripts/counts2fpkm.R --help
 
 # wheat dataset
-Rscript scripts/counts2fpkm.R data/wheat_counts_raw.txt data/IWGSC_v1.1_HC_20170706.no-header.gff3 data/wheat_counts_fpkm.txt --cores=10
+Rscript scripts/counts2fpkm.R data/expression/wheat_counts_raw.txt \
+                              data/annotation/IWGSC_v1.1_HC_20170706.no-header.gff3 \
+                              data/expression/wheat_counts_fpkm.txt \
+                              --cores=10
 
 # brachy dataset
-Rscript scripts/counts2fpkm.R data/brachy_counts_raw.txt data/BdistachyonBd21_3_537_v1.2.gene_exons.no-header.gff3 data/brachy_counts_fpkm.txt --cores=10
+Rscript scripts/counts2fpkm.R data/expression/brachy_counts_raw.txt \
+                              data/annotation/BdistachyonBd21_3_537_v1.2.gene_exons.no-header.gff3 \
+                              data/expression/brachy_counts_fpkm.txt \
+                              --cores=10
 ```
 
 As a quick QC, I wrote `scripts/pca_expr_data.R` to perform PCA on the expression datasets (raw counts and fpkm) for wheat and Brachy.
 
 ```bash
-mkdir -p analysis/qc
+mkdir -p analysis/qc/expression
 
 for geno in wheat brachy; do
   for expr in raw fpkm; do
-    Rscript scripts/pca_expr_data.R data/${geno}_counts_${expr}.txt analysis/qc/pca_${geno}_${expr}.png
+    Rscript scripts/pca_expr_data.R data/expression/${geno}_counts_${expr}.txt \
+                                    analysis/qc/expression/pca_${geno}_${expr}.png
   done
 done
 ```
@@ -95,8 +111,12 @@ To have an idea of what CV threshold to use, I plotted the distribution of genes
 
 ```bash
 # plot CV distribution among all samples
-Rscript scripts/prepare_data_for_camoco.R data/brachy_counts_fpkm.txt analysis/qc/cv_distribution_brachy-fpkm.png --plot-cv
-Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt analysis/qc/cv_distribution_wheat-fpkm.png --plot-cv
+Rscript scripts/prepare_data_for_camoco.R data/expression/brachy_counts_fpkm.txt \
+                                          analysis/qc/expression/cv_distribution_brachy-fpkm.png \
+                                          --plot-cv
+Rscript scripts/prepare_data_for_camoco.R data/expression/wheat_counts_fpkm.txt \
+                                          analysis/qc/expression/cv_distribution_wheat-fpkm.png \
+                                          --plot-cv
 
 # add sample names to variables
 brachy_samples="Bd21_D2_mock_R1,Bd21_D2_mock_R2,Bd21_D2_mock_R3,Bd21_D2_treated_R1,Bd21_D2_treated_R2,Bd21_D2_treated_R3,Bd21_D4_treated_R1,Bd21_D4_treated_R2,Bd21_D4_treated_R3,Bd21_D6_treated_R1,Bd21_D6_treated_R2,Bd21_D6_treated_R3"
@@ -104,9 +124,18 @@ wheatR_samples="Sr9b_D2_mock_R1,Sr9b_D2_mock_R2,Sr9b_D2_mock_R3,Sr9b_D2_treated_
 wheatS_samples="W2691_D2_mock_R1,W2691_D2_mock_R2,W2691_D2_mock_R3,W2691_D2_treated_R1,W2691_D2_treated_R2,W2691_D2_treated_R3,W2691_D4_treated_R1,W2691_D4_treated_R2,W2691_D4_treated_R3,W2691_D6_treated_R1,W2691_D6_treated_R2,W2691_D6_treated_R3"
 
 # plot CV distribution by genotype
-Rscript scripts/prepare_data_for_camoco.R data/brachy_counts_fpkm.txt analysis/qc/cv_distribution_brachy-fpkm.inf_2-4-6.mock_2.png --plot-cv --keep-samples=$brachy_samples
-Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt analysis/qc/cv_distribution_wheatR-fpkm.inf_2-4-6.mock_2.png --plot-cv --keep-samples=$wheatR_samples
-Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt analysis/qc/cv_distribution_wheatS-fpkm.inf_2-4-6.mock_2.png --plot-cv --keep-samples=$wheatS_samples
+Rscript scripts/prepare_data_for_camoco.R data/expression/brachy_counts_fpkm.txt \
+                                          analysis/qc/expression/cv_distribution_brachy-fpkm.inf_2-4-6.mock_2.png \
+                                          --plot-cv \
+                                          --keep-samples=$brachy_samples
+Rscript scripts/prepare_data_for_camoco.R data/expression/wheat_counts_fpkm.txt \
+                                          analysis/qc/expression/cv_distribution_Sr9b-fpkm.inf_2-4-6.mock_2.png \
+                                          --plot-cv \
+                                          --keep-samples=$wheatR_samples
+Rscript scripts/prepare_data_for_camoco.R data/expression/wheat_counts_fpkm.txt \
+                                          analysis/qc/expression/cv_distribution_W2691-fpkm.inf_2-4-6.mock_2.png \
+                                          --plot-cv \
+                                          --keep-samples=$wheatS_samples
 ```
 
 Below is the number of genes that would be eliminated by different CV thresholds for all samples. Based on this table and the distribution of CV for each genotype, I will only keep genes with CV >= 0.1 for both brachy and wheat.
@@ -130,13 +159,22 @@ An additional formatting of the expression matrix is required for building netwo
 
 ```bash
 # brachy dataset
-Rscript scripts/prepare_data_for_camoco.R data/brachy_counts_fpkm.txt data/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv --filter-cv=0.1 --keep-samples=$brachy_samples
+Rscript scripts/prepare_data_for_camoco.R data/expression/brachy_counts_fpkm.txt \
+                                          data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv \
+                                          --filter-cv=0.1 \
+                                          --keep-samples=$brachy_samples
 
 # wheat resistant dataset
-Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt data/expr_data_fpkm_wheat_R.cv_0.1.inf_2-4-6.mock_2.csv --filter-cv=0.1 --keep-samples=$wheatR_samples
+Rscript scripts/prepare_data_for_camoco.R data/expression/wheat_counts_fpkm.txt \
+                                          data/expression/expr_data_fpkm_Sr9b.cv_0.1.inf_2-4-6.mock_2.csv \
+                                          --filter-cv=0.1 \
+                                          --keep-samples=$wheatR_samples
 
 # wheat susceptible dataset
-Rscript scripts/prepare_data_for_camoco.R data/wheat_counts_fpkm.txt data/expr_data_fpkm_wheat_S.cv_0.1.inf_2-4-6.mock_2.csv --filter-cv=0.1 --keep-samples=$wheatS_samples
+Rscript scripts/prepare_data_for_camoco.R data/expression/wheat_counts_fpkm.txt \
+                                          data/expression/expr_data_fpkm_W2691.cv_0.1.inf_2-4-6.mock_2.csv \
+                                          --filter-cv=0.1 \
+                                          --keep-samples=$wheatS_samples
 ```
 
 
@@ -147,8 +185,8 @@ After some preliminary tests, I found out that the gene IDs from Brachy genome a
 
 ```bash
 # reference genome annotation
-grep -P "^#" data/BdistachyonBd21_3_537_v1.2.gene_exons.gff3 > data/BdistachyonBd21_3_537_v1.2.gene_exons.corrected-IDs.gff3
-awk 'BEGIN{FS=OFS="\t"} {gsub(/\.v1\.2/, "", $9)} 1' data/BdistachyonBd21_3_537_v1.2.gene_exons.no-header.gff3 | awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $9)} 1' >> data/BdistachyonBd21_3_537_v1.2.gene_exons.corrected-IDs.gff3
+grep -P "^#" data/annotation/BdistachyonBd21_3_537_v1.2.gene_exons.gff3 > data/annotation/BdistachyonBd21_3_537_v1.2.gene_exons.corrected-IDs.gff3
+awk 'BEGIN{FS=OFS="\t"} {gsub(/\.v1\.2/, "", $9)} 1' data/annotation/BdistachyonBd21_3_537_v1.2.gene_exons.no-header.gff3 | awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $9)} 1' >> data/annotation/BdistachyonBd21_3_537_v1.2.gene_exons.corrected-IDs.gff3
 
 # awk commands:
 #   BEGIN{} this block of code will be executed before processing any input line
@@ -157,11 +195,11 @@ awk 'BEGIN{FS=OFS="\t"} {gsub(/\.v1\.2/, "", $9)} 1' data/BdistachyonBd21_3_537_
 #   1 is an awk idiom to print contents of $0 (which contains the input record)
 
 # go file
-sed 1d data/brachy_full_gos_long.txt | awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $1)} 1' > data/brachy_full_gos_long.corrected-IDs.txt
+sed 1d data/go/brachy_full_gos_long.txt | awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $1)} 1' > data/go/brachy_full_gos_long.corrected-IDs.txt
 
 # expression data
-head -n 1 data/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv > data/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.corrected-IDs.csv
-sed 1d data/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv | awk 'BEGIN{FS=OFS="\t"} {gsub(/\.v1\.2/, "", $1)} 1' | awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $1)} 1' >> data/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.corrected-IDs.csv
+head -n 1 data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv > data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.corrected-IDs.csv
+sed 1d data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv | awk 'BEGIN{FS=OFS="\t"} {gsub(/\.v1\.2/, "", $1)} 1' | awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $1)} 1' >> data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.corrected-IDs.csv
 ```
 
 
@@ -212,8 +250,8 @@ Before building any network, I need to load Brachy and wheat reference genome an
 source activate camoco
 
 # create a reference genome dataset for camoco -- see 'camoco build-refgen -h' for help
-camoco build-refgen data/BdistachyonBd21_3_537_v1.2.gene_exons.corrected-IDs.gff3 BrachyRef Bd21_3_537_v1.2 phytozomev13 Brachypodium_distachyon
-camoco build-refgen data/IWGSC_v1.1_HC_20170706.gff3 WheatRef TraesChineseSpring_v1.1_201706 IWGSC Triticum_aestivum
+camoco build-refgen data/annotation/BdistachyonBd21_3_537_v1.2.gene_exons.corrected-IDs.gff3 BrachyRef Bd21_3_537_v1.2 phytozomev13 Brachypodium_distachyon
+camoco build-refgen data/annotation/IWGSC_v1.1_HC_20170706.gff3 WheatRef TraesChineseSpring_v1.1_201706 IWGSC Triticum_aestivum
 # check that loading was successfull
 camoco ls
 
@@ -223,19 +261,32 @@ source deactivate
 
 Camoco performs Gene Ontology (GO) enrichment analysis to quality control the networks created. In order to do that, I need to create a GO object in Camoco, which requires a `go.obo` file containing all core ontology terms (<http://geneontology.org/docs/download-ontology/>) and a two-column species-specific file relating genes (first column) and their respective GO terms (second column).
 
+The `go.obo` file is a comprehensive list of GO terms, thus it contains very complex and specific terms that may be hard to analyze or undertand what's really going on. Thus, one alternative is to use more generic terms (`goslim_generic.obo`) or use terms specific to plants (`goslim_plant.obo`; which is derived from Arabidopsis).
+
 ```bash
 # activate camoco virtual environment
 source activate camoco
 
-# get go.obo file
-wget -P data/ http://purl.obolibrary.org/obo/go.obo
+# get obo files
+wget -P data/go/ http://purl.obolibrary.org/obo/go.obo
+wget -P data/go/ http://current.geneontology.org/ontology/subsets/goslim_generic.obo
+wget -P data/go/ http://current.geneontology.org/ontology/subsets/goslim_plant.obo
 
 # remove header from wheat go files
-sed -i 1d data/wheat_full_gos_long.txt
+sed -i 1d data/go/wheat_full_gos_long.txt
 
 # create a go annotation reference for camoco  -- see 'camoco build-go -h' for help
-camoco build-go data/brachy_full_gos_long.corrected-IDs.txt data/go.obo BrachyGO brachy_go_annotation BrachyRef
-camoco build-go data/wheat_full_gos_long.txt data/go.obo WheatGO wheat_go_annotation WheatRef
+camoco build-go data/go/brachy_full_gos_long.corrected-IDs.txt data/go/go.obo BrachyGO brachy_go_annotation BrachyRef
+camoco build-go data/go/wheat_full_gos_long.txt data/go/go.obo WheatGO wheat_go_annotation WheatRef
+
+# also create generic go database
+camoco build-go data/go/brachy_full_gos_long.corrected-IDs.txt data/go/goslim_generic.obo BrachyGOslim brachy_go_generic BrachyRef
+camoco build-go data/go/wheat_full_gos_long.txt data/go/goslim_generic.obo WheatGOslim wheat_go_generic WheatRef
+
+camoco build-go data/go/brachy_full_gos_long.corrected-IDs.txt data/go/goslim_plant.obo BrachyGOplant brachy_go_plant BrachyRef
+camoco build-go data/go/wheat_full_gos_long.txt data/go/goslim_plant.obo WheatGOplant wheat_go_plant WheatRef
+
+
 # check that loading was successfull
 camoco ls
 
@@ -245,3 +296,53 @@ source deactivate
 
 > Done: Ontology:BrachyGO - desc: brachy_go_annotation - contains 3589 terms for Reference Genome: Brachypodium_distachyon - phytozomev13 - BrachyRef
 > Done: Ontology:WheatGO - desc: wheat_go_annotation - contains 12572 terms for Reference Genome: Triticum_aestivum - IWGSC - WheatRef
+
+
+
+
+
+## Build networks
+
+Originally, Meesh had generated three networks, one for each genotype, and included infected samples 2,4 and 6 dpi and mock samples 2dpi only. To build the networks with `scripts/build_network.sh`, I need to specify five parameters: the Camoco filters to be applied to expression dataset (`OPT`), the expression data file (`IN`), a name for the network (`NAME`), a description of the network (`DESC`) and the reference genome to be used (`REF`). An additional parameter (`HEALTH`) is a folder to save summary statistics of the network.
+
+```bash
+mkdir -p analysis/qc/health
+
+# set parameters build networks
+options="--max-gene-missing-data 0.4 --max-accession-missing-data 0.4 --min-single-sample-expr 0.5 --min-expr 0.001"
+
+# brachy
+qsub -v OPT="$options",IN=data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.corrected-IDs.csv,NAME=SR_brachy_1,DESC=brachy_infected-2-4-6dpi_mock_2dpi_mgmd0-4_mamd0-4_msse0-5_min0-001,REF=BrachyRef,HEALTH=analysis/qc/health scripts/build_network.sh
+sleep 60
+# wheat R
+qsub -v OPT="$options",IN=data/expression/expr_data_fpkm_Sr9b.cv_0.1.inf_2-4-6.mock_2.csv,NAME=SR_Sr9b_1,DESC=Sr9b_infected-2-4-6dpi_mock_2dpi_mgmd0-4_mamd0-4_msse0-5_min0-001,REF=WheatRef,HEALTH=analysis/qc/health scripts/build_network.sh
+sleep 60
+# wheat S
+qsub -v OPT="$options",IN=data/expression/expr_data_fpkm_W2691.cv_0.1.inf_2-4-6.mock_2.csv,NAME=SR_W2691_1,DESC=W2691_infected-2-4-6dpi_mock_2dpi_mgmd0-4_mamd0-4_msse0-5_min0-001,REF=WheatRef,HEALTH=analysis/qc/health scripts/build_network.sh
+```
+
+> NOTE 1: Use `OPT="$options"` instead of `OPT=$options` because of the whitespaces inside `$options`.
+> NOTE 2: Starting multiple jobs at the same time will cause an error due to accessing Camoco database at the same time, that's why I added `sleep 60` between `qsub` commands.
+
+Camoco can also perform GO enrichment analysis of the entire network as QC. To do so, I wrote `scripts/network_health.sh`.
+
+```bash
+# # summary with GO enrichment analysis -- take much longer!
+# qsub -v NAME=SR_brachy_1,REF=BrachyRef,GO=BrachyGO,OUT=analysis/qc/health/SR_brachy_1 scripts/network_health.sh
+# qsub -v NAME=SR_Sr9b_1,REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_Sr9b_1 scripts/network_health.sh
+# qsub -v NAME=SR_W2691_1,REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_W2691_1 scripts/network_health.sh
+```
+
+After networks are built, I retrieved cluster information (i.e. which genes are in which clusters) from Camoco database with `scripts/retrieve_network_info.py`. The cluster number is sorted by cluster size, meaning that cluster 0 is the largest cluster, cluster 1 is the second largest and so on. In addition, this script also retrieves the transformed expression data used as input for building networks (Camoco performs an inverse hyperbolic sine transformation due to the dynamic range of the RNAseq data).
+
+```bash
+mkdir -p analysis/clusters
+
+source activate camoco
+
+for network in SR_brachy_1 SR_Sr9b_1 SR_W2691_1; do
+  python scripts/retrieve_network_info.py $network analysis/clusters
+done
+
+source deactivate
+```

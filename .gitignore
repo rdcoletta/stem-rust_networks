@@ -1,5 +1,6 @@
 analysis/*
 data/*
+tests/*
 .Rproj.user
 *.Rproj
 *.DS_Store

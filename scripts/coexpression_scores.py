@@ -58,7 +58,7 @@ for cluster in cluster_list:
     scores_df.to_csv(output_name, sep = "\t", index = False)
 
     # also exports data to GraphML and JSON formats
-    COB.to_graphml(file = output_prefix + ".cluster_" + str(cluster) + ".gml",
+    COB.to_graphml(file = output_prefix + ".cluster_" + str(cluster) + ".graphml",
                    gene_list = genes_cluster)
     COB.to_json(filename = output_prefix + ".cluster_" + str(cluster) + ".json",
                 gene_list = genes_cluster, sig_only = True)

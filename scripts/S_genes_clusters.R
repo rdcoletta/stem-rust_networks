@@ -5,10 +5,9 @@ library(data.table)
 
 usage <- function() {
   cat("
-description: adjust expression dataset to match the matrix format required by Camoco
-             for building the networks
+description: get the number of Camoco cluster containing a susceptibility gene
 
-usage: Rscript prepare_data_for_camoco.R [expression_data] [output_name] [...]
+usage: Rscript S_genes_clusters.R [file_clusters] [file_orthologs] [species] [output_name]
 
 positional arguments:
   file_clusters           file with gene ids and cluster information from Camoco
@@ -37,7 +36,7 @@ if (length(args) != 4) stop(usage(), "missing positional argument(s)")
 
 
 
-#### calculate CV ----
+#### assign cluster number to orthologs ----
 
 file_clusters <- args[1]
 file_ortho <- args[2]
@@ -67,12 +66,12 @@ info_clusters <- info_clusters[which(info_clusters[, 1] %in% info_ortho[, 5]), ]
 info_ortho$cluster <- NA
 # assign cluster number to orthologs
 for (row in 1:NROW(info_clusters)) {
-  
+
   gene <- info_clusters[row, 1]
   cluster <- info_clusters[row, 2]
-  
+
   info_ortho[which(info_ortho[, 5] == gene), "cluster"] <- cluster
-  
+
 }
 
 # order by cluster

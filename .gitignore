@@ -5,3 +5,5 @@ tests/*
 *.Rproj
 *.DS_Store
 *.Rhistory
+*.pdf
+*.png

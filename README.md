@@ -16,7 +16,7 @@ The objective of this project is to create gene co-expression networks from whea
 | Python   |         |                                |
 | Camoco   |         |                                |
 
-
+> In order to execute R scripts on MSI, need to `module load R`.
 
 ## Data
 
@@ -105,7 +105,7 @@ done
 
 ### Filter data by CV and samples for each network
 
-Coexpression networks require variation of gene expression across samples. Thus, filtering genes by their coefficient of variation (CV) eliminates such uninformative genes, reduces the initial number of genes to build networks and speeds up clustering. I also have to filter the whole dataset to have the samples I want for each network. There will be **one network for each genotype** (wheat susceptible, wheat resistant, brachy) using all reps for 2, 4 and 6 days after inoculating the plants with stem rust, and all reps for the 2dpi samples that were mock inoculated.
+Coexpression networks require variation of gene expression across samples. Thus, filtering genes by their coefficient of variation (CV) eliminates such uninformative genes, reduces the initial number of genes to build networks and speeds up clustering. I also have to filter the whole dataset to have the samples I want for each network. There will be **one network for each genotype** (wheat susceptible, wheat resistant, brachy) using all reps for 2, 4 and 6 days after inoculating the plants with stem rust and after mock inoculation.
 
 To have an idea of what CV threshold to use, I plotted the distribution of genes CV among samples using `scripts/prepare_data_for_camoco.R`.
 
@@ -119,21 +119,21 @@ Rscript scripts/prepare_data_for_camoco.R data/expression/wheat_counts_fpkm.txt 
                                           --plot-cv
 
 # add sample names to variables
-brachy_samples="Bd21_D2_mock_R1,Bd21_D2_mock_R2,Bd21_D2_mock_R3,Bd21_D2_treated_R1,Bd21_D2_treated_R2,Bd21_D2_treated_R3,Bd21_D4_treated_R1,Bd21_D4_treated_R2,Bd21_D4_treated_R3,Bd21_D6_treated_R1,Bd21_D6_treated_R2,Bd21_D6_treated_R3"
-wheatR_samples="Sr9b_D2_mock_R1,Sr9b_D2_mock_R2,Sr9b_D2_mock_R3,Sr9b_D2_treated_R1,Sr9b_D2_treated_R2,Sr9b_D2_treated_R3,Sr9b_D4_treated_R1,Sr9b_D4_treated_R2,Sr9b_D4_treated_R3,Sr9b_D6_treated_R1,Sr9b_D6_treated_R2,Sr9b_D6_treated_R3"
-wheatS_samples="W2691_D2_mock_R1,W2691_D2_mock_R2,W2691_D2_mock_R3,W2691_D2_treated_R1,W2691_D2_treated_R2,W2691_D2_treated_R3,W2691_D4_treated_R1,W2691_D4_treated_R2,W2691_D4_treated_R3,W2691_D6_treated_R1,W2691_D6_treated_R2,W2691_D6_treated_R3"
+brachy_samples="Bd21_D2_mock_R1,Bd21_D2_mock_R2,Bd21_D2_mock_R3,Bd21_D4_mock_R1,Bd21_D4_mock_R2,Bd21_D4_mock_R3,Bd21_D6_mock_R1,Bd21_D6_mock_R2,Bd21_D6_mock_R3,Bd21_D2_treated_R1,Bd21_D2_treated_R2,Bd21_D2_treated_R3,Bd21_D4_treated_R1,Bd21_D4_treated_R2,Bd21_D4_treated_R3,Bd21_D6_treated_R1,Bd21_D6_treated_R2,Bd21_D6_treated_R3"
+wheatR_samples="Sr9b_D2_mock_R1,Sr9b_D2_mock_R2,Sr9b_D2_mock_R3,Sr9b_D4_mock_R1,Sr9b_D4_mock_R2,Sr9b_D4_mock_R3,Sr9b_D6_mock_R1,Sr9b_D6_mock_R2,Sr9b_D6_mock_R3,Sr9b_D2_treated_R1,Sr9b_D2_treated_R2,Sr9b_D2_treated_R3,Sr9b_D4_treated_R1,Sr9b_D4_treated_R2,Sr9b_D4_treated_R3,Sr9b_D6_treated_R1,Sr9b_D6_treated_R2,Sr9b_D6_treated_R3"
+wheatS_samples="W2691_D2_mock_R1,W2691_D2_mock_R2,W2691_D2_mock_R3,W2691_D4_mock_R1,W2691_D4_mock_R2,W2691_D4_mock_R3,W2691_D6_mock_R1,W2691_D6_mock_R2,W2691_D6_mock_R3,W2691_D2_treated_R1,W2691_D2_treated_R2,W2691_D2_treated_R3,W2691_D4_treated_R1,W2691_D4_treated_R2,W2691_D4_treated_R3,W2691_D6_treated_R1,W2691_D6_treated_R2,W2691_D6_treated_R3"
 
 # plot CV distribution by genotype
 Rscript scripts/prepare_data_for_camoco.R data/expression/brachy_counts_fpkm.txt \
-                                          analysis/qc/expression/cv_distribution_brachy-fpkm.inf_2-4-6.mock_2.png \
+                                          analysis/qc/expression/cv_distribution_brachy-fpkm.inf_2-4-6.mock_2-4-6.png \
                                           --plot-cv \
                                           --keep-samples=$brachy_samples
 Rscript scripts/prepare_data_for_camoco.R data/expression/wheat_counts_fpkm.txt \
-                                          analysis/qc/expression/cv_distribution_Sr9b-fpkm.inf_2-4-6.mock_2.png \
+                                          analysis/qc/expression/cv_distribution_Sr9b-fpkm.inf_2-4-6.mock_2-4-6.png \
                                           --plot-cv \
                                           --keep-samples=$wheatR_samples
 Rscript scripts/prepare_data_for_camoco.R data/expression/wheat_counts_fpkm.txt \
-                                          analysis/qc/expression/cv_distribution_W2691-fpkm.inf_2-4-6.mock_2.png \
+                                          analysis/qc/expression/cv_distribution_W2691-fpkm.inf_2-4-6.mock_2-4-6.png \
                                           --plot-cv \
                                           --keep-samples=$wheatS_samples
 ```
@@ -160,19 +160,19 @@ An additional formatting of the expression matrix is required for building netwo
 ```bash
 # brachy dataset
 Rscript scripts/prepare_data_for_camoco.R data/expression/brachy_counts_fpkm.txt \
-                                          data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv \
+                                          data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2-4-6.csv \
                                           --filter-cv=0.1 \
                                           --keep-samples=$brachy_samples
 
 # wheat resistant dataset
 Rscript scripts/prepare_data_for_camoco.R data/expression/wheat_counts_fpkm.txt \
-                                          data/expression/expr_data_fpkm_Sr9b.cv_0.1.inf_2-4-6.mock_2.csv \
+                                          data/expression/expr_data_fpkm_Sr9b.cv_0.1.inf_2-4-6.mock_2-4-6.csv \
                                           --filter-cv=0.1 \
                                           --keep-samples=$wheatR_samples
 
 # wheat susceptible dataset
 Rscript scripts/prepare_data_for_camoco.R data/expression/wheat_counts_fpkm.txt \
-                                          data/expression/expr_data_fpkm_W2691.cv_0.1.inf_2-4-6.mock_2.csv \
+                                          data/expression/expr_data_fpkm_W2691.cv_0.1.inf_2-4-6.mock_2-4-6.csv \
                                           --filter-cv=0.1 \
                                           --keep-samples=$wheatS_samples
 ```
@@ -198,8 +198,8 @@ awk 'BEGIN{FS=OFS="\t"} {gsub(/\.v1\.2/, "", $9)} 1' data/annotation/Bdistachyon
 sed 1d data/go/brachy_full_gos_long.txt | awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $1)} 1' > data/go/brachy_full_gos_long.corrected-IDs.txt
 
 # expression data
-head -n 1 data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv > data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.corrected-IDs.csv
-sed 1d data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.csv | awk 'BEGIN{FS=OFS="\t"} {gsub(/\.v1\.2/, "", $1)} 1' | awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $1)} 1' >> data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.corrected-IDs.csv
+head -n 1 data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2-4-6.csv > data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2-4-6.corrected-IDs.csv
+sed 1d data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2-4-6.csv | awk 'BEGIN{FS=OFS="\t"} {gsub(/\.v1\.2/, "", $1)} 1' | awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $1)} 1' >> data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2-4-6.corrected-IDs.csv
 ```
 
 
@@ -215,7 +215,7 @@ cd ~/software/
 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 # install miniconda
 bash Miniconda3-latest-Linux-x86_64.sh -p ~/software/miniconda
-# check if conda needs uptdates
+# check if conda needs updates
 conda update -n base conda
 # create virtual environment for camoco
 conda create -n camoco python=3.6
@@ -311,13 +311,13 @@ mkdir -p analysis/qc/health
 options="--max-gene-missing-data 0.4 --max-accession-missing-data 0.4 --min-single-sample-expr 0.5 --min-expr 0.001"
 
 # brachy
-qsub -v OPT="$options",IN=data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2.corrected-IDs.csv,NAME=SR_brachy_1,DESC=brachy_infected-2-4-6dpi_mock_2dpi_mgmd0-4_mamd0-4_msse0-5_min0-001,REF=BrachyRef,HEALTH=analysis/qc/health scripts/build_network.sh
+qsub -v OPT="$options",IN=data/expression/expr_data_fpkm_brachy.cv_0.1.inf_2-4-6.mock_2-4-6.corrected-IDs.csv,NAME=SR_brachy_2,DESC=brachy_infected-2-4-6dpi_mock_2-4-6dpi_mgmd0-4_mamd0-4_msse0-5_min0-001,REF=BrachyRef,HEALTH=analysis/qc/health scripts/build_network.sh
 sleep 60
 # wheat R
-qsub -v OPT="$options",IN=data/expression/expr_data_fpkm_Sr9b.cv_0.1.inf_2-4-6.mock_2.csv,NAME=SR_Sr9b_1,DESC=Sr9b_infected-2-4-6dpi_mock_2dpi_mgmd0-4_mamd0-4_msse0-5_min0-001,REF=WheatRef,HEALTH=analysis/qc/health scripts/build_network.sh
+qsub -v OPT="$options",IN=data/expression/expr_data_fpkm_Sr9b.cv_0.1.inf_2-4-6.mock_2-4-6.csv,NAME=SR_Sr9b_2,DESC=Sr9b_infected-2-4-6dpi_mock_2-4-6dpi_mgmd0-4_mamd0-4_msse0-5_min0-001,REF=WheatRef,HEALTH=analysis/qc/health scripts/build_network.sh
 sleep 60
 # wheat S
-qsub -v OPT="$options",IN=data/expression/expr_data_fpkm_W2691.cv_0.1.inf_2-4-6.mock_2.csv,NAME=SR_W2691_1,DESC=W2691_infected-2-4-6dpi_mock_2dpi_mgmd0-4_mamd0-4_msse0-5_min0-001,REF=WheatRef,HEALTH=analysis/qc/health scripts/build_network.sh
+qsub -v OPT="$options",IN=data/expression/expr_data_fpkm_W2691.cv_0.1.inf_2-4-6.mock_2-4-6.csv,NAME=SR_W2691_2,DESC=W2691_infected-2-4-6dpi_mock_2-4-6dpi_mgmd0-4_mamd0-4_msse0-5_min0-001,REF=WheatRef,HEALTH=analysis/qc/health scripts/build_network.sh
 ```
 
 > NOTE 1: Use `OPT="$options"` instead of `OPT=$options` because of the whitespaces inside `$options`.
@@ -327,9 +327,9 @@ Camoco can also perform GO enrichment analysis of the entire network as QC. To d
 
 ```bash
 # # summary with GO enrichment analysis -- take much longer!
-# qsub -v NAME=SR_brachy_1,REF=BrachyRef,GO=BrachyGO,OUT=analysis/qc/health/SR_brachy_1 scripts/network_health.sh
-# qsub -v NAME=SR_Sr9b_1,REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_Sr9b_1 scripts/network_health.sh
-# qsub -v NAME=SR_W2691_1,REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_W2691_1 scripts/network_health.sh
+# qsub -v NAME=SR_brachy_2,REF=BrachyRef,GO=BrachyGO,OUT=analysis/qc/health/SR_brachy_2 scripts/network_health.sh
+# qsub -v NAME=SR_Sr9b_2,REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_Sr9b_2 scripts/network_health.sh
+# qsub -v NAME=SR_W2691_2,REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_W2691_2 scripts/network_health.sh
 ```
 
 After networks are built, I retrieved cluster information (i.e. which genes are in which clusters) from Camoco database with `scripts/retrieve_network_info.py`. The cluster number is sorted by cluster size, meaning that cluster 0 is the largest cluster, cluster 1 is the second largest and so on. In addition, this script also retrieves the transformed expression data used as input for building networks (Camoco performs an inverse hyperbolic sine transformation due to the dynamic range of the RNAseq data).
@@ -339,7 +339,7 @@ mkdir -p analysis/clusters
 
 source activate camoco
 
-for network in SR_brachy_1 SR_Sr9b_1 SR_W2691_1; do
+for network in SR_brachy_2 SR_Sr9b_2 SR_W2691_2; do
   python scripts/retrieve_network_info.py $network analysis/clusters
 done
 
@@ -359,20 +359,20 @@ mkdir -p data/orthologs
 awk 'BEGIN{FS=OFS="\t"} {gsub(/BdiBd21-3\./, "BdiBd", $6)} 1' data/orthologs/s_gene_orthologs.txt | awk 'BEGIN{FS=OFS="\t"} function GSUB(F) {gsub(/\.[0-9]+/, "", $F)} {GSUB(5);GSUB(6)} 1' > data/orthologs/s_gene_orthologs.corrected-IDs.txt
 
 # check the number of cluster for each ortholog gene
-Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_brachy_1.csv \
+Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_brachy_2.csv \
                                    data/orthologs/s_gene_orthologs.corrected-IDs.txt \
                                    brachy \
-                                   analysis/clusters/s_gene_orthologs_clusters.SR_brachy_1.txt
+                                   analysis/clusters/s_gene_orthologs_clusters.SR_brachy_2.txt
 
-Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_Sr9b_1.csv \
+Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_Sr9b_2.csv \
                                    data/orthologs/s_gene_orthologs.corrected-IDs.txt \
                                    wheat \
-                                   analysis/clusters/s_gene_orthologs_clusters.SR_Sr9b_1.txt
+                                   analysis/clusters/s_gene_orthologs_clusters.SR_Sr9b_2.txt
 
-Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_W2691_1.csv \
+Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_W2691_2.csv \
                                    data/orthologs/s_gene_orthologs.corrected-IDs.txt \
                                    wheat \
-                                   analysis/clusters/s_gene_orthologs_clusters.SR_W2691_1.txt
+                                   analysis/clusters/s_gene_orthologs_clusters.SR_W2691_2.txt
 ```
 
 I also wrote `scripts/coexpression_scores.py` and `scripts/coexpression_scores.sh` to get all edges (i.e. z-scores; the Pearson correlation coefficients after being Fisher transformed and standard normalized) for each cluster that has a susceptibility gene ortholog, which can be useful to visualize interactions among genes in a cluster. The script will output this information in three formats:
@@ -385,11 +385,11 @@ I also wrote `scripts/coexpression_scores.py` and `scripts/coexpression_scores.s
 # get coexpression scores from clusters with orthologs
 mkdir -p analysis/clusters/orthologs
 
-qsub -v NAME=SR_brachy_1 scripts/coexpression_scores.sh
+qsub -v NAME=SR_brachy_2 scripts/coexpression_scores.sh
 sleep 60
-qsub -v NAME=SR_Sr9b_1 scripts/coexpression_scores.sh
+qsub -v NAME=SR_Sr9b_2 scripts/coexpression_scores.sh
 sleep 60
-qsub -v NAME=SR_W2691_1 scripts/coexpression_scores.sh
+qsub -v NAME=SR_W2691_2 scripts/coexpression_scores.sh
 ```
 
 
@@ -404,24 +404,32 @@ mkdir -p analysis/go_enrichment
 # get ortholog clusters for each genotype
 # note that 'qsub' doesn't allow me to add a list of comma-separated clusters
 # so I'm separating them by - and will transform back to comma in the bash script
-brachy_clusters=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.SR_brachy_1.txt | cut -f 6 | sort -n | uniq | tr "\n" "-" | sed '$ s/.$//')
-wheatR_clusters=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.SR_Sr9b_1.txt | cut -f 6 | sort -n | uniq | tr "\n" "-" | sed '$ s/.$//')
-wheatS_clusters=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.SR_W2691_1.txt | cut -f 6 | sort -n | uniq | tr "\n" "-" | sed '$ s/.$//')
+brachy_clusters=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.SR_brachy_2.txt | cut -f 6 | sort -n | uniq | tr "\n" "-" | sed '$ s/.$//')
+wheatR_clusters=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.SR_Sr9b_2.txt | cut -f 6 | sort -n | uniq | tr "\n" "-" | sed '$ s/.$//')
+wheatS_clusters=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.SR_W2691_2.txt | cut -f 6 | sort -n | uniq | tr "\n" "-" | sed '$ s/.$//')
 
 # cluster enrichment full GO terms for ortholog clusters
-qsub -v NAME=SR_brachy_1,GO=BrachyGO,CLUSTERS="$brachy_clusters",OUT=analysis/go_enrichment/go_full.SR_brachy_1.ortho_clusters.txt scripts/cluster_enrichment.sh
-qsub -v NAME=SR_Sr9b_1,GO=WheatGO,CLUSTERS="$wheatR_clusters",OUT=analysis/go_enrichment/go_full.SR_Sr9b_1.ortho_clusters.txt scripts/cluster_enrichment.sh
-qsub -v NAME=SR_W2691_1,GO=WheatGO,CLUSTERS="$wheatS_clusters",OUT=analysis/go_enrichment/go_full.SR_W2691_1.ortho_clusters.txt scripts/cluster_enrichment.sh
+qsub -v NAME=SR_brachy_2,GO=BrachyGO,CLUSTERS="$brachy_clusters",OUT=analysis/go_enrichment/go_full.SR_brachy_2.ortho_clusters.txt scripts/cluster_enrichment.sh
+sleep 60
+qsub -v NAME=SR_Sr9b_2,GO=WheatGO,CLUSTERS="$wheatR_clusters",OUT=analysis/go_enrichment/go_full.SR_Sr9b_2.ortho_clusters.txt scripts/cluster_enrichment.sh
+sleep 60
+qsub -v NAME=SR_W2691_2,GO=WheatGO,CLUSTERS="$wheatS_clusters",OUT=analysis/go_enrichment/go_full.SR_W2691_2.ortho_clusters.txt scripts/cluster_enrichment.sh
+sleep 60
 
 # cluster enrichment GO slim for all clusters
-qsub -v NAME=SR_brachy_1,GO=BrachyGOslim,OUT=analysis/go_enrichment/go_slim.SR_brachy_1.all_clusters.txt scripts/cluster_enrichment.sh
-qsub -v NAME=SR_Sr9b_1,GO=WheatGOslim,OUT=analysis/go_enrichment/go_slim.SR_Sr9b_1.all_clusters.txt scripts/cluster_enrichment.sh
-qsub -v NAME=SR_W2691_1,GO=WheatGOslim,OUT=analysis/go_enrichment/go_slim.SR_W2691_1.all_clusters.txt scripts/cluster_enrichment.sh
+qsub -v NAME=SR_brachy_2,GO=BrachyGOslim,OUT=analysis/go_enrichment/go_slim.SR_brachy_2.all_clusters.txt scripts/cluster_enrichment.sh
+sleep 60
+qsub -v NAME=SR_Sr9b_2,GO=WheatGOslim,OUT=analysis/go_enrichment/go_slim.SR_Sr9b_2.all_clusters.txt scripts/cluster_enrichment.sh
+sleep 60
+qsub -v NAME=SR_W2691_2,GO=WheatGOslim,OUT=analysis/go_enrichment/go_slim.SR_W2691_2.all_clusters.txt scripts/cluster_enrichment.sh
+sleep 60
 
 # cluster enrichment GO plants for all clusters
-qsub -v NAME=SR_brachy_1,GO=BrachyGOplant,OUT=analysis/go_enrichment/go_plant.SR_brachy_1.all_clusters.txt scripts/cluster_enrichment.sh
-qsub -v NAME=SR_Sr9b_1,GO=WheatGOplant,OUT=analysis/go_enrichment/go_plant.SR_Sr9b_1.all_clusters.txt scripts/cluster_enrichment.sh
-qsub -v NAME=SR_W2691_1,GO=WheatGOplant,OUT=analysis/go_enrichment/go_plant.SR_W2691_1.all_clusters.txt scripts/cluster_enrichment.sh
+qsub -v NAME=SR_brachy_2,GO=BrachyGOplant,OUT=analysis/go_enrichment/go_plant.SR_brachy_2.all_clusters.txt scripts/cluster_enrichment.sh
+sleep 60
+qsub -v NAME=SR_Sr9b_2,GO=WheatGOplant,OUT=analysis/go_enrichment/go_plant.SR_Sr9b_2.all_clusters.txt scripts/cluster_enrichment.sh
+sleep 60
+qsub -v NAME=SR_W2691_2,GO=WheatGOplant,OUT=analysis/go_enrichment/go_plant.SR_W2691_2.all_clusters.txt scripts/cluster_enrichment.sh
 ```
 
 After the above jobs were completed, I checked the GO enrichment results to see if any of the enriched GO terms were actually one of the orthologs of the susceptibility genes. Once such genes were identified, I ran `scripts/GOenrich_per_S_gene.R` to create a matrix with susceptibility gene information and their respective enriched GO term information.
@@ -431,7 +439,8 @@ mkdir -p analysis/go_enrichment/{full,slim,plant}
 
 # extract GO enrichment information for each ortholog
 dir="analysis/go_enrichment"
-for network in SR_brachy_1 SR_Sr9b_1 SR_W2691_1; do
+for network in SR_brachy_2 SR_Sr9b_2 SR_W2691_2; do
+  echo ${network}
   for go in full slim plant; do
 
     # get genes to search
@@ -458,7 +467,7 @@ for network in SR_brachy_1 SR_Sr9b_1 SR_W2691_1; do
 done
 
 # now keep only genes in the orthologs matrix that have GO enrichment
-for network in SR_brachy_1 SR_Sr9b_1 SR_W2691_1; do
+for network in SR_brachy_2 SR_Sr9b_2 SR_W2691_2; do
   echo ${network}
   for go in full slim plant; do
     Rscript scripts/GOenrich_per_S_gene.R analysis/clusters/s_gene_orthologs_clusters.${network}.txt \
@@ -471,16 +480,16 @@ done
 # for better visualization, I will merge the files from each GO enrichment type
 # into one file but exclude the GO description column
 for go in full slim plant; do
-  cut --complement -f 6 analysis/go_enrichment/GOenrich_${go}_S_genes.SR_brachy_1.txt > analysis/go_enrichment/GOenrich_${go}_S_genes.txt
-  cut --complement -f 6 analysis/go_enrichment/GOenrich_${go}_S_genes.SR_Sr9b_1.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_genes.txt
-  cut --complement -f 6 analysis/go_enrichment/GOenrich_${go}_S_genes.SR_W2691_1.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_genes.txt
+  cut --complement -f 6 analysis/go_enrichment/GOenrich_${go}_S_genes.SR_brachy_2.txt > analysis/go_enrichment/GOenrich_${go}_S_genes.2.txt
+  cut --complement -f 6 analysis/go_enrichment/GOenrich_${go}_S_genes.SR_Sr9b_2.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_genes.2.txt
+  cut --complement -f 6 analysis/go_enrichment/GOenrich_${go}_S_genes.SR_W2691_2.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_genes.2.txt
 done
 ```
 
 Similarly, I also ran `scripts/GOenrich_per_S_cluster.R` to get all GO terms enriched in a cluster where an ortholog was. For example, if cluster 0 had an otrhologo, all enriched GO terms in that cluster was extracted.
 
 ```bash
-for network in SR_brachy_1 SR_Sr9b_1 SR_W2691_1; do
+for network in SR_brachy_2 SR_Sr9b_2 SR_W2691_2; do
   echo ${network}
   for go in slim plant; do
     Rscript scripts/GOenrich_per_S_cluster.R analysis/clusters/s_gene_orthologs_clusters.${network}.txt \
@@ -492,8 +501,8 @@ done
 
 # put all networks in one file and remove description column for better visualization
 for go in slim plant; do
-  cut --complement -f 5 analysis/go_enrichment/GOenrich_${go}_S_clusters.SR_brachy_1.txt > analysis/go_enrichment/GOenrich_${go}_S_clusters.txt
-  cut --complement -f 5 analysis/go_enrichment/GOenrich_${go}_S_clusters.SR_Sr9b_1.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_clusters.txt
-  cut --complement -f 5 analysis/go_enrichment/GOenrich_${go}_S_clusters.SR_W2691_1.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_clusters.txt
+  cut --complement -f 5 analysis/go_enrichment/GOenrich_${go}_S_clusters.SR_brachy_2.txt > analysis/go_enrichment/GOenrich_${go}_S_clusters.2.txt
+  cut --complement -f 5 analysis/go_enrichment/GOenrich_${go}_S_clusters.SR_Sr9b_2.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_clusters.2.txt
+  cut --complement -f 5 analysis/go_enrichment/GOenrich_${go}_S_clusters.SR_W2691_2.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_clusters.2.txt
 done
 ```

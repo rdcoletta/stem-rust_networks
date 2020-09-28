@@ -326,10 +326,13 @@ qsub -v OPT="$options",IN=data/expression/expr_data_fpkm_W2691.cv_0.1.inf_2-4-6.
 Camoco can also perform GO enrichment analysis of the entire network as QC. To do so, I wrote `scripts/network_health.sh`.
 
 ```bash
-# # summary with GO enrichment analysis -- take much longer!
-# qsub -v NAME=SR_brachy_2,REF=BrachyRef,GO=BrachyGO,OUT=analysis/qc/health/SR_brachy_2 scripts/network_health.sh
-# qsub -v NAME=SR_Sr9b_2,REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_Sr9b_2 scripts/network_health.sh
-# qsub -v NAME=SR_W2691_2,REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_W2691_2 scripts/network_health.sh
+# summary with GO enrichment analysis -- take much longer!
+qsub -v NAME=SR_brachy_2,REF=BrachyRef,GO=BrachyGO,OUT=analysis/qc/health/SR_brachy_2 scripts/network_health.sh
+sleep 120
+qsub -v NAME=SR_Sr9b_2,REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_Sr9b_2 scripts/network_health.sh
+sleep 120
+qsub -v NAME=SR_W2691_2,REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_W2691_2 scripts/network_health.sh
+sleep 120
 ```
 
 After networks are built, I retrieved cluster information (i.e. which genes are in which clusters) from Camoco database with `scripts/retrieve_network_info.py`. The cluster number is sorted by cluster size, meaning that cluster 0 is the largest cluster, cluster 1 is the second largest and so on. In addition, this script also retrieves the transformed expression data used as input for building networks (Camoco performs an inverse hyperbolic sine transformation due to the dynamic range of the RNAseq data).
@@ -346,6 +349,15 @@ done
 source deactivate
 ```
 
+I also plotted the distribution of genes per cluster, but only the first 100 clusters (since the cluster numbers are sorted from the largest to smallest cluster), and limited the y axis at 1,000 genes for better visualization (since the first few clusters may have much more genes than that).
+
+```bash
+for network in SR_brachy_2 SR_Sr9b_2 SR_W2691_2; do
+  Rscript scripts/distribution_genes_clusters.R analysis/clusters/network_clusters.${network}.csv \
+                                                ${network} \
+                                                analysis/qc/health/distribution_clusters.${network}.png
+done
+```
 
 
 ## Susceptibility genes' orthologs
@@ -394,44 +406,9 @@ qsub -v NAME=SR_W2691_2 scripts/coexpression_scores.sh
 
 
 
-## Analysis of networks
-
-Network 1: kept CV > 0.1, all infected samples, 2dpi mock samples
-Network 2: kept CV > 0.1, all infected samples, all mock samples
-Network 3: kept CV > 0.5, all infected samples, all mock samples
-
-Complete health:
-
-```bash
-# summary with GO enrichment analysis -- take much longer!
-for network in 1 2 3; do
-  qsub -v NAME=SR_brachy_${network},REF=BrachyRef,GO=BrachyGO,OUT=analysis/qc/health/SR_brachy_${network} scripts/network_health.sh
-  sleep 120
-  qsub -v NAME=SR_Sr9b_${network},REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_Sr9b_${network} scripts/network_health.sh
-  sleep 120
-  qsub -v NAME=SR_W2691_${network},REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_W2691_${network} scripts/network_health.sh
-  sleep 120
-done
-```
-
-Distribution of genes per cluster (only first 100 clusters and y-axis cropped at 1,000 genes for better visualization):
-
-```bash
-for network in 1 2 3; do
-  for name in SR_brachy_ SR_Sr9b_ SR_W2691_; do
-    Rscript scripts/distribution_genes_clusters.R analysis/clusters/network_clusters.${name}${network}.csv \
-                                                  ${name}${network} \
-                                                  analysis/qc/health/distribution_clusters.${name}${network}.png
-  done
-done
-```
-
-
-
 ## Interesting genes
 
-Eva sent me interesting S genes for wheat and brachy from DEG and ortholog analysis: `data/orthologs/brachy_interesting.txt` and `data/orthologs/wheat_interesting.txt`. Need to filter Table S2 to have only these interesting genes first, then get which clusters they are for each network and see all of the genes are in all networks or just in some of them.
-
+Lastly, Eva sent me interesting S genes for wheat and brachy from her DEG and ortholog analysis (`data/orthologs/brachy_interesting.txt` and `data/orthologs/wheat_interesting.txt`) to filter the information from Table S2 even more. Then check which clusters they were located, and confirmed that all of the interesting genes are indeed present in the networks.
 
 ```bash
 # format 'BdiBd21-3.' to 'BdiBd' and remove '.1', '.2', etc from gene ids
@@ -463,39 +440,30 @@ for network in 1 2 3; do
 done
 
 # get unique interesting orthologs present in each network
-for name in SR_brachy_ SR_Sr9b_ SR_W2691_; do
-  for network in 1 2 3; do
-    genes=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.${name}${network}.interesting-only.txt | cut -f 1 | sort | uniq | tr "\n" "," | sed '$ s/.$/\n/')
-    echo "${name}${network}: ${genes}"
-  done
-  echo ""
+for network in SR_brachy_2 SR_Sr9b_2 SR_W2691_2; do
+  genes=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.${network}.interesting-only.txt | cut -f 1 | sort | uniq | tr "\n" "," | sed '$ s/.$/\n/')
+  echo "${network}: ${genes}"
 done
-# SR_brachy_1: ADH1,DMR6,DND1,PMR4,VAD1
 # SR_brachy_2: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
-# SR_brachy_2: DMR6
-#
-# SR_Sr9b_1: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
 # SR_Sr9b_2: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
-# SR_Sr9b_2: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
-#
-# SR_W2691_1: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
-# SR_W2691_2: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
 # SR_W2691_2: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
 ```
 
 
-Decided on network 2:
-1. Need list of genes and their cluster info
-2. Table with geneA, geneB, and their zscore
-3. Final table of ortholog info for those interesting genes
 
+## Datasets for Eva's downstream analysis
+
+Eva will perform the GO enrichment analysis for clusters with these interesting S genes. For that, she will need:
+
+1. List of genes and their cluster info for the entire network (`analysis/clusters/network_clusters.SR_*_2.csv`)
+2. Table of ortholog information for those interesting S genes and the cluster they belong (`analysis/clusters/s_gene_orthologs_clusters.SR_*_2.interesting-only.txt`)
+3. For each cluster containing an interesting S gene of each network, there’s a table with the correlation score between every gene in the cluster (`gene_correlations_per_cluster.tar.gz`)
 
 ```bash
-# 1. copy these files to my mac
-analysis/clusters/network_clusters.SR_*_2.csv
+cd analysis/clusters
 
-# 2.copy these files to my mac
-mkdir analysis/clusters/interesting_S_genes
+mkdir interesting_S_genes
+
 for geno in brachy Sr9b W2691; do
   net_clusters=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.SR_${geno}_2.interesting-only.txt | cut -f 6 | sort | uniq)
   for cluster in $net_clusters; do
@@ -503,6 +471,5 @@ for geno in brachy Sr9b W2691; do
   done
 done
 
-# 3. copy these files to my mac
-analysis/clusters/s_gene_orthologs_clusters.SR_*_2.interesting-only.txt
+tar -zcvf gene_correlations_per_cluster.tar.gz interesting_S_genes
 ```

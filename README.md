@@ -513,3 +513,118 @@ for go in full slim plant; do
   cut --complement -f 5 analysis/go_enrichment/GOenrich_${go}_S_clusters.SR_W2691_3.txt | sed 1d >> analysis/go_enrichment/GOenrich_${go}_S_clusters.3.txt
 done
 ```
+
+
+
+## Analysis of networks
+
+Network 1: kept CV > 0.1, all infected samples, 2dpi mock samples
+Network 2: kept CV > 0.1, all infected samples, all mock samples
+Network 3: kept CV > 0.5, all infected samples, all mock samples
+
+Complete health:
+
+```bash
+# summary with GO enrichment analysis -- take much longer!
+for network in 1 2 3; do
+  qsub -v NAME=SR_brachy_${network},REF=BrachyRef,GO=BrachyGO,OUT=analysis/qc/health/SR_brachy_${network} scripts/network_health.sh
+  sleep 120
+  qsub -v NAME=SR_Sr9b_${network},REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_Sr9b_${network} scripts/network_health.sh
+  sleep 120
+  qsub -v NAME=SR_W2691_${network},REF=WheatRef,GO=WheatGO,OUT=analysis/qc/health/SR_W2691_${network} scripts/network_health.sh
+  sleep 120
+done
+```
+
+Distribution of genes per cluster (only first 100 clusters and y-axis cropped at 1,000 genes for better visualization):
+
+```bash
+for network in 1 2 3; do
+  for name in SR_brachy_ SR_Sr9b_ SR_W2691_; do
+    Rscript scripts/distribution_genes_clusters.R analysis/clusters/network_clusters.${name}${network}.csv \
+                                                  ${name}${network} \
+                                                  analysis/qc/health/distribution_clusters.${name}${network}.png
+  done
+done
+```
+
+
+
+## Interesting genes
+
+Eva sent me interesting S genes for wheat and brachy from DEG and ortholog analysis: `data/orthologs/brachy_interesting.txt` and `data/orthologs/wheat_interesting.txt`. Need to filter Table S2 to have only these interesting genes first, then get which clusters they are for each network and see all of the genes are in all networks or just in some of them.
+
+
+```bash
+# format 'BdiBd21-3.' to 'BdiBd' and remove '.1', '.2', etc from gene ids
+sed 's/BdiBd21-3\./BdiBd/' data/orthologs/brachy_interesting.txt > data/orthologs/brachy_interesting.corrected-IDs.txt
+
+# add end of line character at file with interesting brach genes
+sed -i -e '$a\' data/orthologs/brachy_interesting.corrected-IDs.txt
+
+# filtering Table S2 to keep only interesting genes
+head -n 1 data/orthologs/s_gene_orthologs.corrected-IDs.txt > data/orthologs/s_gene_orthologs.corrected-IDs.interesting-only.txt
+grep -f <(cat data/orthologs/brachy_interesting.corrected-IDs.txt data/orthologs/wheat_interesting.txt) data/orthologs/s_gene_orthologs.corrected-IDs.txt >> data/orthologs/s_gene_orthologs.corrected-IDs.interesting-only.txt
+
+# check the number of cluster for each interesting gene
+for network in 1 2 3; do
+  Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_brachy_${network}.csv \
+                                     data/orthologs/s_gene_orthologs.corrected-IDs.interesting-only.txt \
+                                     brachy \
+                                     analysis/clusters/s_gene_orthologs_clusters.SR_brachy_${network}.interesting-only.txt
+
+  Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_Sr9b_${network}.csv \
+                                     data/orthologs/s_gene_orthologs.corrected-IDs.interesting-only.txt \
+                                     wheat \
+                                     analysis/clusters/s_gene_orthologs_clusters.SR_Sr9b_${network}.interesting-only.txt
+
+  Rscript scripts/S_genes_clusters.R analysis/clusters/network_clusters.SR_W2691_${network}.csv \
+                                     data/orthologs/s_gene_orthologs.corrected-IDs.interesting-only.txt \
+                                     wheat \
+                                     analysis/clusters/s_gene_orthologs_clusters.SR_W2691_${network}.interesting-only.txt
+done
+
+# get unique interesting orthologs present in each network
+for name in SR_brachy_ SR_Sr9b_ SR_W2691_; do
+  for network in 1 2 3; do
+    genes=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.${name}${network}.interesting-only.txt | cut -f 1 | sort | uniq | tr "\n" "," | sed '$ s/.$/\n/')
+    echo "${name}${network}: ${genes}"
+  done
+  echo ""
+done
+# SR_brachy_1: ADH1,DMR6,DND1,PMR4,VAD1
+# SR_brachy_2: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
+# SR_brachy_3: DMR6
+#
+# SR_Sr9b_1: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
+# SR_Sr9b_2: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
+# SR_Sr9b_3: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
+#
+# SR_W2691_1: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
+# SR_W2691_2: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
+# SR_W2691_3: ADH1,BI-1,DMR6,DND1,PMR4,VAD1
+```
+
+
+Decided on network 2:
+1. Need list of genes and their cluster info
+2. Table with geneA, geneB, and their zscore
+3. Final table of ortholog info for those interesting genes
+
+
+```bash
+# 1. copy these files to my mac
+analysis/clusters/network_clusters.SR_*_2.csv
+
+# 2.copy these files to my mac
+mkdir analysis/clusters/interesting_S_genes
+for geno in brachy Sr9b W2691; do
+  net_clusters=$(sed 1d analysis/clusters/s_gene_orthologs_clusters.SR_${geno}_2.interesting-only.txt | cut -f 6 | sort | uniq)
+  for cluster in $net_clusters; do
+    cp analysis/clusters/orthologs/coexpr_scores_all_genes.SR_${geno}_2.cluster_${cluster}.txt analysis/clusters/interesting_S_genes/
+  done
+done
+
+# 3. copy these files to my mac
+analysis/clusters/s_gene_orthologs_clusters.SR_*_2.interesting-only.txt
+```

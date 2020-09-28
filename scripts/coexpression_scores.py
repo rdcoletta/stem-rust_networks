@@ -49,7 +49,7 @@ for cluster in cluster_list:
     genes_cluster = [gene for gene in genes_network if gene.name in genes_cluster]
 
     # get data frame with co-expression scores
-    scores_df = COB.subnetwork(genes_cluster, sig_only = False, names_as_cols = True)
+    scores_df = COB.subnetwork(genes_cluster, sig_only = True, names_as_cols = True)
     # keep only important columns
     scores_df = scores_df[["gene_a", "gene_b", "score"]]
 

@@ -473,3 +473,39 @@ done
 
 tar -zcvf gene_correlations_per_cluster.tar.gz interesting_S_genes
 ```
+
+
+---
+
+#### Additional clusters with genes of interest
+
+Eva made some changes to the genes of interest and she requested the correlation information for the following clusters:
+* Brachy: clusters 51, 272, 652, 1662, 1848
+* W2691: cluster 5, 11, 178
+* Sr9b: cluster 122, 1916, 2729, 2772, 3133
+
+```bash
+# brachy
+python scripts/coexpression_scores.py SR_brachy_2 51,272,652,1662,1848 analysis/clusters/orthologs/coexpr_scores_all_genes.SR_brachy_2
+# W2691
+python scripts/coexpression_scores.py SR_W2691_2 5,11,178 analysis/clusters/orthologs/coexpr_scores_all_genes.SR_W2691_2
+# Sr9b
+python scripts/coexpression_scores.py SR_Sr9b_2 122,1916,2729,2772,3133 analysis/clusters/orthologs/coexpr_scores_all_genes.SR_Sr9b_2
+```
+
+She also requested the gene correlations of the entire network for each genotype.
+
+```bash
+# brachy
+python scripts/coexpression_scores.py SR_brachy_2 all analysis/clusters/coexpr_scores_network.SR_brachy_2
+# W2691
+python scripts/coexpression_scores.py SR_W2691_2 all analysis/clusters/coexpr_scores_network.SR_W2691_2
+# Sr9b
+python scripts/coexpression_scores.py SR_Sr9b_2 all analysis/clusters/coexpr_scores_network.SR_Sr9b_2
+
+cd analysis/clusters/
+tar -zcvf gene_correlations_per_network.tar.gz coexpr_scores_network.SR_*_2.txt
+cd ~/projects/stem-rust_networks
+```
+
+---

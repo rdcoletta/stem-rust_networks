@@ -2,21 +2,19 @@
 
 by Rafael Della Coletta and Cory Hirsch (September 2020).
 
----
-
-The objective of this project is to create gene co-expression networks from wheat and Brachypodium genes in response to wheat stem rust infection.
+> The objective of this project is to create gene co-expression networks from wheat and Brachypodium genes in response to wheat stem rust infection. This project is part of the research published by [Henningsen et al (2021, Frontiers in Plant Sciences)](https://doi.org/10.3389/fpls.2021.657796). For all codes associated with this research, please see [this Github repo](https://github.com/henni164/stem_rust_susceptibility).
 
 
 
 ## Requirements
 
-| Software | Version | Additional libraries / modules |
-| -------- | ------- | ------------------------------ |
-| R        |         |                                |
-| Python   |         |                                |
-| Camoco   |         |                                |
+| Software | Version |
+| -------- | ------- |
+| R        | 3.6.0   |
+| Python   | 3.6.6   |
+| Camoco   | 0.6.1   |
 
-> In order to execute R scripts on MSI, need to `module load R`.
+> In order to execute R scripts on MSI, need to `module load R/3.6.0`.
 
 ## Data
 
